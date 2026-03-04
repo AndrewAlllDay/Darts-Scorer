@@ -27,6 +27,16 @@ type TurnSummary = {
   cricketMarksEarned: Record<number, number>;
 };
 
+type Particle = {
+  id: number;
+  width: string;
+  height: string;
+  left: string;
+  duration: string;
+  delay: string;
+  opacity: number;
+};
+
 const gameDescriptions: Record<GameType, string> = {
   '20': 'Quick Test',
   '301': 'Zero Out',
@@ -61,6 +71,18 @@ const App: React.FC = () => {
   const [turnSummary, setTurnSummary] = useState<TurnSummary | null>(null);
   const [recapTimeLeft, setRecapTimeLeft] = useState<number>(4);
   const [activeAward, setActiveAward] = useState<AwardType>(null);
+
+  const [particles] = useState<Particle[]>(() =>
+    [...Array(20)].map((_, i) => ({
+      id: i,
+      width: (Math.random() * 4 + 2).toString() + 'px',
+      height: (Math.random() * 4 + 2).toString() + 'px',
+      left: (Math.random() * 100).toString() + '%',
+      duration: (Math.random() * 8 + 7).toString() + 's',
+      delay: (Math.random() * -15).toString() + 's',
+      opacity: Math.random() * 0.5 + 0.2
+    }))
+  );
 
   const segments: number[] = Array.from({ length: 20 }, (_, i) => i + 1);
   const isCricketGame = gameType === 'cricket';
@@ -227,154 +249,209 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans relative">
       <style>{`
         @keyframes popIn { 0% { opacity: 0; transform: scale(0.9) translateY(10px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
         @keyframes awardIn { 0% { opacity: 0; transform: scale(0.5) rotate(-10deg); } 70% { transform: scale(1.1) rotate(5deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
         @keyframes shrinkWidth { from { width: 100%; } to { width: 0%; } }
+        @keyframes drift {
+          from { transform: translateY(0) rotate(0deg); opacity: 0; }
+          20% { opacity: 0.4; }
+          80% { opacity: 0.4; }
+          to { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
+        }
         .animate-pop-in { animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .animate-award { animation: awardIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .animate-shrink { animation: shrinkWidth 4s linear forwards; }
+        .bg-arcade-grid {
+          background-image: linear-gradient(to right, rgba(249,115,22,0.1) 1px, transparent 1px),
+                            linear-gradient(to bottom, rgba(249,115,22,0.1) 1px, transparent 1px);
+          background-size: 50px 50px;
+        }
+        .particle {
+          position: absolute;
+          background: white;
+          border-radius: 50%;
+          pointer-events: none;
+          animation: drift linear infinite;
+          box-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(249,115,22,0.4);
+        }
       `}</style>
 
-      {/* SCREEN 1: PLAYER SETUP */}
-      {appMode === 'setup-players' && (
-        <div className="flex flex-col h-full w-full p-6 max-w-2xl mx-auto justify-center animate-pop-in">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center justify-center p-6 bg-slate-900 rounded-full mb-4 shadow-xl shadow-orange-500/10">
-              <Users size={64} className="text-orange-500" />
-            </div>
-            <h1 className="text-5xl font-black tracking-tight uppercase">DartBoard Studio</h1>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            {[1, 2, 3, 4].map(num => (
-              <button key={num} onClick={() => setPlayerCount(num)} className={`py-8 rounded-2xl text-3xl font-black border-4 transition-all ${playerCount === num ? 'bg-orange-500 border-orange-600' : 'bg-slate-900 border-slate-800'}`}>{num} PLAYER{num > 1 ? 'S' : ''}</button>
-            ))}
-          </div>
-          <button onClick={() => setAppMode('setup-game')} disabled={playerCount === 0} className="w-full py-8 bg-blue-600 rounded-3xl font-black text-3xl uppercase tracking-widest disabled:opacity-50 transition-all">Next Step <ArrowRight className="inline ml-2" /></button>
-        </div>
-      )}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-arcade-grid" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950 to-slate-950" />
+        {particles.map((p) => (
+          <div
+            key={p.id}
+            className="particle"
+            style={{
+              width: p.width,
+              height: p.height,
+              left: p.left,
+              bottom: '-20px',
+              animationDuration: p.duration,
+              animationDelay: p.delay,
+              opacity: p.opacity
+            }}
+          />
+        ))}
+      </div>
 
-      {/* SCREEN 2: GAME SETUP */}
-      {appMode === 'setup-game' && (
-        <div className="flex flex-col h-full w-full p-6 max-w-2xl mx-auto justify-center animate-pop-in">
-          <button onClick={() => setAppMode('setup-players')} className="absolute top-6 left-6 p-4 bg-slate-800 rounded-full text-slate-400"><ArrowLeft size={32} /></button>
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center justify-center p-6 bg-slate-900 rounded-full mb-4 shadow-xl shadow-orange-500/10">
-              <Target size={64} className="text-orange-500" />
+      <div className="relative z-10 h-full w-full">
+        {appMode === 'setup-players' && (
+          <div className="flex flex-col h-full w-full p-6 max-w-2xl mx-auto justify-center animate-pop-in">
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center justify-center p-6 bg-slate-900 rounded-full mb-4 shadow-xl shadow-orange-500/10 border border-slate-800">
+                <Users size={64} className="text-orange-500" />
+              </div>
+              <h1 className="text-5xl font-black tracking-tight uppercase italic drop-shadow-lg">DartBoard Studio</h1>
             </div>
-            <h1 className="text-5xl font-black tracking-tight uppercase">Select Game</h1>
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              {[1, 2, 3, 4].map(num => (
+                <button key={num} onClick={() => setPlayerCount(num)} className={`py-8 rounded-2xl text-3xl font-black border-4 transition-all ${playerCount === num ? 'bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/30' : 'bg-slate-900 border-slate-800'}`}>{num} PLAYER{num > 1 ? 'S' : ''}</button>
+              ))}
+            </div>
+            <button onClick={() => setAppMode('setup-game')} disabled={playerCount === 0} className="w-full py-8 bg-blue-600 rounded-3xl font-black text-3xl uppercase tracking-widest disabled:opacity-50 transition-all shadow-xl active:scale-95">Next Step <ArrowRight className="inline ml-2" /></button>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            {(['20', '301', '501', '701', 'cricket'] as GameType[]).map(type => (
-              <button key={type} onClick={() => setGameType(type)} className={`py-6 rounded-2xl border-4 transition-all ${gameType === type ? 'bg-orange-500 border-orange-600 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
-                <span className="font-black text-4xl block">{type.toUpperCase()}</span>
-                <span className="text-[10px] uppercase opacity-50">{gameDescriptions[type]}</span>
-              </button>
-            ))}
-          </div>
-          <button onClick={startGame} disabled={!gameType} className="w-full py-8 bg-green-600 rounded-3xl font-black text-3xl uppercase tracking-widest disabled:opacity-50 transition-all"><Play className="inline mr-2 fill-current" /> Start Match</button>
-        </div>
-      )}
+        )}
 
-      {/* SCREEN 3: ACTIVE GAME */}
-      {appMode === 'playing' && (
-        <div className="flex flex-col h-full w-full p-4 max-w-2xl mx-auto animate-pop-in">
-          <div className="flex items-start mb-4">
-            <button onClick={() => setShowQuitConfirm(true)} className="p-3 bg-slate-800 rounded-xl text-slate-400 w-16 flex flex-col items-center gap-1"><RotateCcw size={24} /><span className="text-[10px] font-bold">QUIT</span></button>
-            <div className="flex-1 mx-2">
-              {isCricketGame ? (
-                <div className="bg-slate-900 rounded-xl border-2 border-slate-800 p-2 shadow-inner">
-                  <div className="flex border-b-2 border-slate-800 pb-1 mb-1">
-                    <div className="w-8"></div>
-                    {playerData.map((p, i) => (
-                      <div key={i} className={`flex-1 text-center ${activePlayer === i ? 'text-orange-500 scale-110' : 'text-slate-500'}`}>
-                        <p className="text-xs font-black">P{i + 1}</p>
-                        <p className="text-sm font-bold opacity-80">{p.score}</p>
+        {appMode === 'setup-game' && (
+          <div className="flex flex-col h-full w-full p-6 max-w-2xl mx-auto justify-center animate-pop-in">
+            <button onClick={() => setAppMode('setup-players')} className="absolute top-6 left-6 p-4 bg-slate-800 rounded-full text-slate-400 active:scale-90 transition-transform"><ArrowLeft size={32} /></button>
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center justify-center p-6 bg-slate-900 rounded-full mb-4 shadow-xl shadow-orange-500/10 border border-slate-800">
+                <Target size={64} className="text-orange-500" />
+              </div>
+              <h1 className="text-5xl font-black tracking-tight uppercase italic drop-shadow-lg">Select Game</h1>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              {(['20', '301', '501', '701', 'cricket'] as GameType[]).map(type => (
+                <button key={type} onClick={() => setGameType(type)} className={`py-6 rounded-2xl border-4 transition-all ${gameType === type ? 'bg-orange-500 border-orange-400 text-white shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+                  <span className="font-black text-4xl block uppercase tracking-tighter">{type}</span>
+                  <span className="text-[10px] uppercase font-bold opacity-60 tracking-wider">{gameDescriptions[type]}</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={startGame} disabled={!gameType} className="w-full py-8 bg-green-600 rounded-3xl font-black text-3xl uppercase tracking-widest disabled:opacity-50 transition-all shadow-xl active:scale-95"><Play className="inline mr-2 fill-current" /> Start Match</button>
+          </div>
+        )}
+
+        {appMode === 'playing' && (
+          <div className="flex flex-col h-full w-full p-4 max-w-2xl mx-auto animate-pop-in">
+            <div className="flex items-start mb-4">
+              <button onClick={() => setShowQuitConfirm(true)} className="p-3 bg-slate-800/80 backdrop-blur-md rounded-xl text-slate-400 w-16 flex flex-col items-center gap-1 active:scale-90 border border-slate-700/50"><RotateCcw size={24} /><span className="text-[10px] font-bold">QUIT</span></button>
+              <div className="flex-1 mx-2">
+                {isCricketGame ? (
+                  <div className="bg-slate-900/90 backdrop-blur-md rounded-xl border-2 border-slate-800 p-2 shadow-inner">
+                    <div className="flex border-b-2 border-slate-800 pb-1 mb-1">
+                      <div className="w-8"></div>
+                      {playerData.map((p, i) => (
+                        <div key={i} className={`flex-1 text-center ${activePlayer === i ? 'text-orange-500 scale-110 drop-shadow-md' : 'text-slate-500'}`}>
+                          <p className="text-xs font-black">P{i + 1}</p>
+                          <p className="text-sm font-bold opacity-80">{p.score}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {[20, 19, 18, 17, 16, 15, 25].map(target => (
+                      <div key={target} className="flex items-center px-1">
+                        <div className="w-8 text-center font-black text-sm text-slate-300">{target === 25 ? 'B' : target}</div>
+                        {getProjectedCricketData().map((p, i) => (
+                          <div key={i} className={`flex-1 flex justify-center py-0.5 ${activePlayer === i ? 'opacity-100' : 'opacity-40'}`}><CricketMark marks={p.marks[target]} /></div>
+                        ))}
                       </div>
                     ))}
                   </div>
-                  {[20, 19, 18, 17, 16, 15, 25].map(target => (
-                    <div key={target} className="flex items-center px-1">
-                      <div className="w-8 text-center font-black text-sm text-slate-300">{target === 25 ? 'B' : target}</div>
-                      {getProjectedCricketData().map((p, i) => (
-                        <div key={i} className={`flex-1 flex justify-center py-0.5 ${activePlayer === i ? 'opacity-100' : 'opacity-40'}`}><CricketMark marks={p.marks[target]} /></div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex justify-center gap-2">
-                  {scores.map((score, index) => (
-                    <div key={index} className={`flex-1 p-2 rounded-xl border-2 text-center ${activePlayer === index ? 'bg-slate-900 border-orange-500' : 'bg-slate-900 border-slate-800 opacity-50'}`}>
-                      <p className="text-[10px] font-black uppercase text-orange-500">P{index + 1}</p>
-                      <h2 className="text-3xl font-black">{score - (index === activePlayer ? currentTurn.reduce((s, d) => s + (d.value === 25 ? d.multiplier * 25 : d.value * d.multiplier), 0) : 0)}</h2>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="w-16"></div>
-          </div>
-
-          <div className="flex justify-center gap-4 mb-4">
-            {[0, 1, 2].map(i => (
-              <div key={i} className={`w-16 h-20 rounded-xl border-2 flex items-center justify-center text-2xl font-bold ${currentTurn[i] ? 'border-orange-500 bg-orange-500/20' : 'border-slate-800 text-slate-800'}`}>
-                {currentTurn[i] ? renderDartText(currentTurn[i]) : '•'}
+                ) : (
+                  <div className="flex justify-center gap-2">
+                    {scores.map((score, index) => (
+                      <div key={index} className={`flex-1 p-2 rounded-xl border-2 text-center transition-all ${activePlayer === index ? 'bg-slate-900/90 border-orange-500 shadow-lg shadow-orange-500/10' : 'bg-slate-900/40 border-slate-800 opacity-50'}`}>
+                        <p className="text-[10px] font-black uppercase text-orange-500">P{index + 1}</p>
+                        <h2 className="text-3xl font-black">{score - (index === activePlayer ? currentTurn.reduce((s, d) => s + (d.value === 25 ? d.multiplier * 25 : d.value * d.multiplier), 0) : 0)}</h2>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
+              <div className="w-16"></div>
+            </div>
+
+            <div className="flex justify-center gap-4 mb-4">
+              {[0, 1, 2].map(i => (
+                <div key={i} className={`w-16 h-20 rounded-xl border-2 flex items-center justify-center text-2xl font-bold transition-all shadow-lg ${currentTurn[i] ? 'border-orange-500 bg-orange-500/20 text-white' : 'border-slate-800 bg-slate-900/40 text-slate-800'}`}>
+                  {currentTurn[i] ? renderDartText(currentTurn[i]) : '•'}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex-1 grid grid-cols-4 gap-2 mb-4">
+              {segments.map(num => <button key={num} onClick={() => setSelectedNumber(num)} className="bg-slate-800/80 backdrop-blur-sm text-slate-100 rounded-lg text-3xl font-bold shadow-lg border border-slate-700/30 active:bg-slate-700 active:scale-95 transition-all">{num}</button>)}
+              <button onClick={() => setSelectedNumber(25)} className="bg-red-900/80 backdrop-blur-sm text-red-100 rounded-lg font-bold text-2xl shadow-lg border border-red-700/30 active:bg-red-800 active:scale-95 transition-all">BULL</button>
+              <button onClick={() => setCurrentTurn(prev => [...prev, { value: 0, multiplier: 1 }])} className="bg-slate-700/80 backdrop-blur-sm text-slate-300 rounded-lg font-bold text-2xl shadow-lg border border-slate-600/30 active:bg-slate-600 active:scale-95 transition-all">MISS</button>
+              <button onClick={() => setCurrentTurn(prev => prev.slice(0, -1))} className="bg-slate-900/80 backdrop-blur-sm rounded-lg flex items-center justify-center col-span-2 text-slate-500 shadow-lg border border-slate-800 active:bg-slate-800 active:scale-95 transition-all"><Delete size={32} /></button>
+            </div>
+
+            <button onClick={confirmTurn} disabled={currentTurn.length === 0} className="w-full py-6 bg-green-600 rounded-2xl font-black text-2xl uppercase shadow-2xl active:bg-green-700 active:scale-95 transition-all disabled:opacity-50">Submit Turn</button>
           </div>
+        )}
+      </div>
 
-          <div className="flex-1 grid grid-cols-4 gap-2 mb-4">
-            {segments.map(num => <button key={num} onClick={() => setSelectedNumber(num)} className="bg-slate-800 text-slate-100 rounded-lg text-3xl font-bold shadow-lg active:bg-slate-700">{num}</button>)}
-            <button onClick={() => setSelectedNumber(25)} className="bg-red-900 text-red-100 rounded-lg font-bold text-2xl shadow-lg active:bg-red-800">BULL</button>
-            <button onClick={() => setCurrentTurn(prev => [...prev, { value: 0, multiplier: 1 }])} className="bg-slate-700 text-slate-300 rounded-lg font-bold text-2xl shadow-lg active:bg-slate-600">MISS</button>
-            <button onClick={() => setCurrentTurn(prev => prev.slice(0, -1))} className="bg-slate-900 rounded-lg flex items-center justify-center col-span-2 text-slate-500 shadow-lg active:bg-slate-800"><Delete size={32} /></button>
-          </div>
-
-          <button onClick={confirmTurn} disabled={currentTurn.length === 0} className="w-full py-6 bg-green-600 rounded-2xl font-black text-2xl uppercase shadow-xl active:bg-green-700">Submit Turn</button>
-        </div>
-      )}
-
-      {/* OVERLAYS & MODALS */}
+      {/* MODALS */}
       {selectedNumber !== null && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
-          <div className="bg-slate-800 w-full max-w-sm rounded-3xl border border-slate-700 animate-pop-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+          <div className="bg-slate-800 w-full max-w-sm rounded-3xl border border-slate-700 animate-pop-in shadow-2xl">
             <div className="bg-slate-900 p-6 flex justify-between items-center border-b border-slate-700">
-              <h2 className="text-4xl font-black text-orange-500 uppercase">{selectedNumber === 25 ? 'Bullseye' : selectedNumber}</h2>
-              <button onClick={() => setSelectedNumber(null)} className="p-3 bg-slate-800 rounded-full text-slate-400"><X size={32} /></button>
+              <h2 className="text-4xl font-black text-orange-500 uppercase tracking-tighter">{selectedNumber === 25 ? 'Bullseye' : selectedNumber}</h2>
+              <button onClick={() => setSelectedNumber(null)} className="p-3 bg-slate-800 rounded-full text-slate-400 active:scale-90 transition-transform"><X size={32} /></button>
             </div>
             <div className="p-6 flex flex-col gap-4">
-              <button onClick={() => handleMultiplierSelect(1)} className="py-8 bg-slate-700 rounded-2xl text-3xl font-bold uppercase active:scale-95 transition-transform">Single</button>
-              <button onClick={() => handleMultiplierSelect(2)} className="py-8 bg-slate-700 rounded-2xl text-3xl font-bold uppercase border-l-8 border-orange-500 active:scale-95 transition-transform">Double</button>
-              {selectedNumber !== 25 && <button onClick={() => handleMultiplierSelect(3)} className="py-8 bg-slate-700 rounded-2xl text-3xl font-bold uppercase border-l-8 border-red-500 active:scale-95 transition-transform">Triple</button>}
+              <button
+                onClick={() => handleMultiplierSelect(1)}
+                className="py-8 bg-slate-700 rounded-2xl text-3xl font-bold uppercase active:scale-95 transition-transform shadow-md border border-slate-600"
+              >
+                Single
+              </button>
+              <button
+                onClick={() => handleMultiplierSelect(2)}
+                className="py-8 bg-slate-700 rounded-2xl text-3xl font-bold uppercase border-l-8 border-orange-500 active:scale-95 transition-transform shadow-md"
+              >
+                Double
+              </button>
+              {selectedNumber !== 25 && (
+                <button
+                  onClick={() => handleMultiplierSelect(3)}
+                  className="py-8 bg-slate-700 rounded-2xl text-3xl font-bold uppercase border-l-8 border-red-500 active:scale-95 transition-transform shadow-md"
+                >
+                  Triple
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
       {activeAward && (
-        <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
-          <div className="animate-award bg-gradient-to-b from-orange-400 to-red-600 p-1 rounded-[40px] shadow-2xl">
+        <div className="fixed inset-0 z-[110] pointer-events-none flex items-center justify-center">
+          <div className="animate-award bg-gradient-to-b from-orange-400 to-red-600 p-1 rounded-[40px] shadow-[0_0_80px_rgba(249,115,22,0.6)]">
             <div className="bg-slate-950 px-12 py-8 rounded-[38px] flex flex-col items-center border-4 border-white/20">
-              <Star className="text-yellow-400 mb-2 fill-yellow-400" size={64} />
-              <h2 className="text-6xl font-black text-white italic drop-shadow-[0_4px_0_rgba(0,0,0,1)] uppercase">{activeAward}</h2>
+              <Star className="text-yellow-400 mb-2 fill-yellow-400 animate-pulse" size={64} />
+              <h2 className="text-6xl font-black text-white italic drop-shadow-[0_4px_0_rgba(0,0,0,1)] uppercase tracking-tighter">{activeAward}</h2>
             </div>
           </div>
         </div>
       )}
 
       {turnSummary && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-6">
-          <div className="bg-slate-900 w-full max-w-sm rounded-3xl border border-slate-700 p-8 relative animate-pop-in text-center shadow-2xl">
-            <h2 className="text-3xl font-black text-white mb-6 uppercase">Player {turnSummary.player + 1}</h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-6">
+          <div className="bg-slate-900 w-full max-w-sm rounded-3xl border-2 border-slate-700 p-8 relative animate-pop-in text-center shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+            <h2 className="text-3xl font-black text-white mb-6 uppercase tracking-tight">Player {turnSummary.player + 1}</h2>
             <div className="flex justify-center gap-3 mb-8">
-              {turnSummary.darts.map((d, i) => <div key={i} className="w-16 h-16 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xl font-bold text-white">{renderDartText(d)}</div>)}
+              {turnSummary.darts.map((d, i) => <div key={i} className="w-16 h-16 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xl font-bold text-white shadow-inner">{renderDartText(d)}</div>)}
               {Array.from({ length: 3 - turnSummary.darts.length }).map((_, i) => <div key={i} className="w-16 h-16 rounded-xl bg-slate-800/50 flex items-center justify-center text-slate-600">-</div>)}
             </div>
             {isCricketGame && Object.keys(turnSummary.cricketMarksEarned).length > 0 && (
-              <div className="mb-8 bg-slate-950/40 p-6 rounded-3xl border border-slate-800">
-                <p className="text-slate-500 text-xs font-black uppercase mb-4">Marks Earned</p>
+              <div className="mb-8 bg-slate-950/60 p-6 rounded-3xl border border-slate-800 shadow-inner">
+                <p className="text-slate-400 text-xs font-black uppercase mb-4 tracking-[0.2em]">Marks Earned</p>
                 <div className="flex flex-wrap justify-center gap-8">
                   {Object.entries(turnSummary.cricketMarksEarned).map(([val, marks]) => (
                     <div key={val} className="flex flex-col items-center gap-2">
@@ -385,41 +462,41 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-            {!isCricketGame && <div className="mb-8"><p className="text-slate-500 text-sm font-bold uppercase opacity-50">Points Scored</p><p className="text-6xl font-black text-green-400">{turnSummary.x01Total}</p></div>}
-            <button onClick={acknowledgeRecap} className="w-full py-6 bg-blue-600 rounded-2xl font-black text-xl flex items-center justify-center gap-3 active:scale-95 transition-transform">Next P{((turnSummary.player + 1) % playerCount) + 1} ({recapTimeLeft}s) <ArrowRight size={28} /></button>
+            {!isCricketGame && <div className="mb-8"><p className="text-slate-500 text-sm font-bold uppercase opacity-50 tracking-widest">Points Scored</p><p className="text-6xl font-black text-green-400 drop-shadow-md">{turnSummary.x01Total}</p></div>}
+            <button onClick={acknowledgeRecap} className="w-full py-6 bg-blue-600 rounded-2xl font-black text-xl flex items-center justify-center gap-3 active:scale-95 transition-transform shadow-xl shadow-blue-500/20">Next P{((turnSummary.player + 1) % playerCount) + 1} ({recapTimeLeft}s) <ArrowRight size={28} /></button>
             <div className="absolute bottom-0 left-0 h-1.5 bg-blue-500 animate-shrink" />
           </div>
         </div>
       )}
 
       {showQuitConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-6">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 backdrop-blur-sm p-6">
           <div className="bg-slate-900 w-full max-w-sm rounded-3xl border border-slate-700 text-center p-8 animate-pop-in">
             <div className="flex justify-center mb-6 text-red-500"><AlertCircle size={64} /></div>
             <h2 className="text-3xl font-black text-white mb-2 uppercase">Quit Match?</h2>
             <div className="flex gap-4 mt-8">
-              <button onClick={() => setShowQuitConfirm(false)} className="flex-1 py-4 bg-slate-800 rounded-xl font-bold">Cancel</button>
-              <button onClick={returnToMenu} className="flex-1 py-4 bg-red-600 rounded-xl font-bold text-white shadow-lg shadow-red-500/20">Quit</button>
+              <button onClick={() => setShowQuitConfirm(false)} className="flex-1 py-4 bg-slate-800 rounded-xl font-bold active:scale-95 transition-transform">Cancel</button>
+              <button onClick={returnToMenu} className="flex-1 py-4 bg-red-600 rounded-xl font-bold text-white shadow-lg shadow-red-500/20 active:scale-95 transition-transform">Quit</button>
             </div>
           </div>
         </div>
       )}
 
       {showBust && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-red-950/90 backdrop-blur-md p-6">
-          <div className="bg-slate-900 w-full max-w-sm rounded-3xl border-4 border-red-600 text-center p-8 animate-pop-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-950/90 backdrop-blur-md p-6">
+          <div className="bg-slate-900 w-full max-w-sm rounded-3xl border-4 border-red-600 text-center p-8 animate-pop-in shadow-2xl">
             <div className="flex justify-center mb-6 text-red-500"><AlertCircle size={80} /></div>
-            <h2 className="text-6xl font-black text-white tracking-widest uppercase italic">Bust!</h2>
-            <button onClick={acknowledgeBust} className="w-full py-6 bg-red-600 rounded-2xl font-black text-2xl mt-8 shadow-xl">Pass Turn</button>
+            <h2 className="text-6xl font-black text-white tracking-widest uppercase italic drop-shadow-md">Bust!</h2>
+            <button onClick={acknowledgeBust} className="w-full py-6 bg-red-600 rounded-2xl font-black text-2xl mt-8 shadow-xl active:scale-95 transition-transform">Pass Turn</button>
           </div>
         </div>
       )}
 
       {winner !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-yellow-900/95 backdrop-blur-md p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-yellow-900/95 backdrop-blur-md p-6">
           <div className="bg-slate-900 w-full max-w-md rounded-3xl border-4 border-yellow-500 text-center p-8 animate-pop-in shadow-2xl">
-            <Trophy size={100} className="text-yellow-500 mx-auto mb-6" />
-            <h2 className="text-5xl font-black text-white uppercase italic mb-8">P{winner + 1} Wins!</h2>
+            <Trophy size={100} className="text-yellow-500 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-bounce" />
+            <h2 className="text-5xl font-black text-white uppercase italic mb-8 drop-shadow-md">P{winner + 1} Wins!</h2>
             <button onClick={startGame} className="w-full py-6 bg-yellow-600 rounded-2xl font-black text-2xl mb-4 text-slate-900 flex justify-center items-center gap-3 active:scale-95 transition-transform shadow-xl"><RotateCcw size={28} /> Play Again</button>
             <button onClick={returnToMenu} className="w-full py-4 bg-slate-800 rounded-2xl font-bold text-slate-400 flex justify-center items-center gap-2 active:scale-95 transition-transform"><Home size={20} /> Menu</button>
           </div>
