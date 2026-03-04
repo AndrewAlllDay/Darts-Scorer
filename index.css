@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+/* Touch-friendly defaults for your basement setup */
+body {
+    @apply bg-slate-950 text-slate-100;
+    user-select: none;
+    /* Prevents text highlighting on the touchscreen */
+    overflow: hidden;
+    /* Keeps the interface locked in place */
+}
+
+/* Make buttons feel more tactile */
+button:active {
+    transform: scale(0.95);
+    transition: transform 0.05s;
+}
